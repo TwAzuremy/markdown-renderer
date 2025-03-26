@@ -1,0 +1,24 @@
+.markdown-editor {
+    outline: none;
+    border: 1px solid #333;
+
+    padding: 12px;
+    font-size: 1rem;
+
+    &:focus-within {
+        border-color: #f00;
+    }
+
+    .markdown-block {
+        margin: 12px 0;
+    }
+
+    [data-type=space] {
+        min-height: 1.5rem;
+    }
+
+    blockquote {
+        border-left: 2px solid #333;
+        padding-left: 8px;
+    }
+}
