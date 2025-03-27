@@ -6,6 +6,15 @@ const markdown = `# Hello World
 **This is Bold Text**
 *This is Italic Text*
 
+- Line 1
+
+    - Line 2
+
+
+1. Line 1
+
+    1. Line 2
+
 Inline Text
 \`Code span\``;
 

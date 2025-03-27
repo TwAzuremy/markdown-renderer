@@ -21,4 +21,8 @@
         border-left: 2px solid #333;
         padding-left: 8px;
     }
+
+    li>:is(ul, ol) {
+        margin-left: 24px;
+    }
 }
