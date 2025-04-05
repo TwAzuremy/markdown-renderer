@@ -7,12 +7,15 @@ const markdown = `# Hello World
 *This is Italic Text*
 
 - Line 1
-
+    Sub Line
     - Line 2
 
+- [x] Check 1
+    Sub Check
+    - [ ] Check 2
 
 1. Line 1
-
+    Sub Line
     1. Line 2
 
 Inline Text
