@@ -1,20 +1,13 @@
-const markdownParagraphClassname = "markdown-block";
-const markdownInlineTextClassname = "markdown-inline";
+const MarkdownClassname = {
+    block: "markdown-block",
+    inline: "markdown-inline"
+};
 
 export const templates = {
-    space(type = "space") {
-        return `<p class="${markdownParagraphClassname}" data-type="${type}"><br></p>`;
-    },
-    blockquote(type, content) {
-        return `<blockquote class="${markdownParagraphClassname}" data-type="${type}">${content}</blockquote>`;
-    },
     paragraph(type, content) {
-        return `<p class="${markdownParagraphClassname}" data-type="${type}">${content}</p>`;
-    },
-    br(type) {
-        return `<br class="${markdownInlineTextClassname}" data-type="${type}">`;
+        return `<p class="${MarkdownClassname.block}" data-type="${type}">${content}</p>`;
     },
     text(text) {
-        return `<span class="${markdownInlineTextClassname}" data-type="text">${text || "<br>"}</span>`;
+        return `<span class="${MarkdownClassname.inline}" data-type="text">${text || "<br>"}</span>`;
     }
 };
