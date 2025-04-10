@@ -10,7 +10,7 @@
     }
 
     .markdown-block {
-        margin: 12px 0;
+        padding: 8px 0;
     }
 
     [data-type=space] {
@@ -24,5 +24,9 @@
 
     li>:is(ul, ol) {
         margin-left: 24px;
+    }
+
+    [data-type=text] {
+        white-space: pre-wrap;
     }
 }

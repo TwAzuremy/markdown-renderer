@@ -10,7 +10,10 @@ const MarkdownEditor = memo(({ src }) => {
 
     useEffect(() => {
         (async () => {
-            setContent(await Markdown.parse(src));
+            const parts = await Markdown.parse(src);
+            const accumulatedContent = parts.join("");
+
+            requestAnimationFrame(() => setContent(accumulatedContent));
         })();
     }, [src]);
 
@@ -19,6 +22,7 @@ const MarkdownEditor = memo(({ src }) => {
             className={"markdown-editor"}
             innerRef={editorRef}
             html={content}
+            tagName={"div"}
         />
     );
 });
