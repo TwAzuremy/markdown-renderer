@@ -3,6 +3,9 @@ export const rules = {
         space: {
             anotherLines: /\n{2}/g,
             newLines: /\n{4}/g,
+        },
+        list: {
+            leadingWhitespaceRe: /^\s*/,
         }
     }
 };
