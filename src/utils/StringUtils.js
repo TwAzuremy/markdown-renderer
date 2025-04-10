@@ -1,7 +1,7 @@
 import { rules } from "../processor/Rules";
 
 /**
- * Remove trailing 'c's. Equivalent to str.replace(/c*$/, '').
+ * Remove trailing "c"s. Equivalent to str.replace(/c*$/, "").
  * /c*$/ is vulnerable to REDOS.
  *
  * @param {String} str
@@ -11,7 +11,7 @@ import { rules } from "../processor/Rules";
 export function rtrim(str, c, invert) {
     const l = str.length;
     if (l === 0) {
-        return '';
+        return "";
     }
 
     // Length of suffix matching the invert condition.
@@ -32,126 +32,271 @@ export function rtrim(str, c, invert) {
     return str.slice(0, l - suffLen);
 }
 
-export function mergeBlockquotes(input) {
-    const lines = input.split('\n');
-    const result = [];
-    let i = 0;
+/**
+ * Retrieves the nesting level of a line based on the number of leading ">" characters.
+ *
+ * This function counts the number of ">" symbols at the beginning of a string (after trimming leading spaces), 
+ * and returns that count as the nesting level. The greater the number of ">" characters, the deeper the nesting.
+ * 
+ * @param {string} line - The line of text to analyze.
+ * @returns {number} - The nesting level, represented by the number of ">" characters at the start of the line.
+ */
+const getLevel = (line) => {
+    const trimmed = line.replace(rules.renderer.other.trimStartPattern, "");
+    const match = trimmed.match(/>/g);
 
-    while (i < lines.length) {
-        const currentLine = lines[i];
+    return match ? match.length : 0;
+};
 
-        // 匹配两个及以上 `>` 的嵌套结构
-        const isNested = /^(>\s*){2,}/.test(currentLine);
-        if (isNested) {
-            result.push(currentLine);
-            i++;
-            continue;
-        }
+/**
+ * Validates the effectiveness of a line of text.
+ * 
+ * This function checks whether a line meets the following conditions:
+ * - If the line is empty, it returns `false`.
+ * - If the line is a blockquote (starts with `>`), it must contain valid content (non-empty) or at least two consecutive spaces.
+ * - Regular lines must contain valid non-empty characters.
+ *
+ * @param {string} line - The line of text to validate.
+ * @returns {boolean} - Returns `true` if the line is valid, otherwise returns `false`.
+ */
+const isValidLine = (line) => {
+    // Exclude empty lines immediately
+    if (line.length === 0) return false;
 
-        // 提取当前行内容（移除开头的 `>`）
-        const currentContent = currentLine.replace(/^>*/, '');
+    // Check if the line is a blockquote
+    const trimmed = line.replace(rules.renderer.other.trimStartPattern, "");
+    const isBlockquote = trimmed.startsWith(">");
 
-        // 空行直接保留
-        if (currentContent === '') {
-            result.push(currentLine);
-            i++;
-            continue;
-        }
+    if (isBlockquote) {
+        // Extract the blockquote prefix and level
+        const gtContent = trimmed.match(rules.renderer.blockquote.blockQuotePattern)?.[0] || "";
+        const remaining = trimmed.slice(gtContent.length);
 
-        // 检查下一行是否可合并
-        let canMerge = false;
-        let separator = rules.tokenizer.brPlaceholder.repeat(3);
-        let nextContent = '';
-        if (i + 1 < lines.length) {
-            const nextLine = lines[i + 1];
-
-            // 下一行必须是单层块引用
-            if (nextLine.startsWith('>') && !/^>\s*>/.test(nextLine)) {
-                nextContent = nextLine.replace(/^>\s*/, '');
-                canMerge = nextContent !== '';
-
-                // 根据下一行 `>` 后是否有空格选择连接符
-                if (canMerge) {
-                    const hasSpaceAfterQuote = /^>\s+/.test(nextLine);
-                    separator = hasSpaceAfterQuote ? separator : rules.tokenizer.brPlaceholder.repeat(2);
-                }
-            }
-        }
-
-        // 合并或保留当前行
-        if (canMerge) {
-            result.push(`>${currentContent}${separator}${nextContent}`);
-            i += 2;
-        } else {
-            result.push(currentLine);
-            i++;
-        }
+        // Blockquote line must contain valid content (non-empty) or two consecutive spaces
+        return remaining.includes("  ") || /\S/.test(remaining);
     }
 
-    return result.join('\n');
+    // Regular lines must contain non-empty characters
+    return true;
+};
+
+/**
+ * Replaces line breaks in the given text with soft line breaks (two spaces + newline),
+ * while preserving certain formatting rules like code blocks, lists, and blockquotes.
+ *
+ * This function splits the input text into blocks, specifically separating code blocks marked by triple backticks.
+ * It then processes the text outside of the code blocks to insert soft line breaks while preserving the structure of:
+ * - Lists (both unordered and ordered)
+ * - Blockquotes (preserving their nested levels)
+ * - Avoiding consecutive empty lines
+ * - Keeping the integrity of code blocks intact.
+ *
+ * @param {string} text - The input text to process.
+ * @returns {string} - The processed text with soft line breaks inserted.
+ *
+ * @example
+ * const inputText = "This is a paragraph.\n\nNext paragraph.\n```console.log("Code")```\nAnother paragraph.";
+ * const result = ReplaceWithSoftLineWraps(inputText);
+ * console.log(result);
+ */
+export function replaceWithSoftLineWraps(text) {
+    // Split the text into blocks, including code blocks marked by triple backticks (```).
+    const codeBlockSplit = text.split(rules.renderer.code.pattern);
+
+    for (let i = 0; i < codeBlockSplit.length; i++) {
+        // Skip code blocks (odd indexes will contain the code blocks)
+        if (i % 2 === 1) continue;
+
+        codeBlockSplit[i] = codeBlockSplit[i].replace(/\n/g, (match, offset, str) => {
+            // Get the current line"s content
+            const lineStart = str.lastIndexOf("\n", offset - 1) + 1;
+            const currentLine = str.slice(lineStart, offset);
+
+            // Validate the line with a custom function
+            if (!isValidLine(currentLine)) return match;
+
+            // Check if the next line is empty (consecutive line breaks)
+            const nextPos = offset + 1;
+            // Consecutive empty lines
+            if (str[nextPos] === "\n") return match;
+
+            // Extract the next line
+            const nextLineEnd = str.indexOf("\n", nextPos);
+            const nextLine = str.slice(nextPos, nextLineEnd === -1 ? undefined : nextLineEnd);
+
+            // Skip list items (both unordered and ordered)
+            if (rules.renderer.list.pattern.test(nextLine)) return match;
+
+            // Handle blockquotes (lines starting with ">")
+            if (str[nextPos] === ">") {
+                // Check if the content after the ">" is valid
+                const afterGT = nextLine.slice(1);
+                if (!(/\S| {2}/.test(afterGT))) return match;
+
+                // Check if the blockquote levels are consistent
+                if (getLevel(currentLine) !== getLevel(nextLine)) return match;
+            }
+
+            // Return a soft line break (two spaces + newline)
+            return "  \n";
+        });
+    }
+
+    // Join the blocks back together and return the modified text
+    return codeBlockSplit.join("");
 }
 
-export function processMarkdownBreaks(src) {
-    const lines = src.split('\n');
-    const result = [];
-    let inCodeBlock = false;    // 是否在代码块内
-    let prevIsList = false;     // 上一条是否是列表项（对应你最初的需求）
-    let inBlockquote = false;   // 是否在引用块内
-    let prevLine = '';          // 用于检测连续换行
+/**
+ * Merges consecutive list items of the same type (ordered or unordered) into a single block,
+ * while preserving other non-list items as individual entries.
+ *
+ * The function processes an array of strings representing a mixed list of items, where some items 
+ * are part of ordered or unordered lists. It groups consecutive list items of the same type together 
+ * (separated by two newlines) and leaves other items (e.g., paragraphs) as they are.
+ * 
+ * It distinguishes between ordered (`1.`, `2.`, etc.) and unordered (`*`, `+`, `-`) lists based on
+ * the starting characters of each line. When encountering a change in list type or non-list items,
+ * the current list is flushed, and the new type is started.
+ *
+ * @param {string[]} arr - The array of strings, where each string represents a line, 
+ *                        potentially part of an ordered or unordered list.
+ * @returns {string[]} - The processed array with merged list items of the same type and 
+ *                       preserved non-list items.
+ *
+ * @example
+ * const input = [
+ *   "* Item 1",
+ *   "* Item 2",
+ *   "* Item 3",
+ *   "This is a paragraph.",
+ *   "1. First item",
+ *   "2. Second item",
+ *   "Another paragraph."
+ * ];
+ * 
+ * const result = mergeListItems(input);
+ * 
+ * console.log(result);
+ * // Output: [
+ * //   "* Item 1\n\n* Item 2\n\n* Item 3",
+ * //   "This is a paragraph.",
+ * //   "1. First item\n\n2. Second item",
+ * //   "Another paragraph."
+ * // ]
+ */
+export function mergeListItems(arr) {
+    const mergedArray = [];
+    let currentType = null;
+    let buffer = [];
 
-    for (let i = 0; i < lines.length; i++) {
-        const line = lines[i].trimEnd(); // 保留行尾空格
+    // Helper function to flush the buffer (i.e., push the accumulated list items to mergedArray).
+    const flushBuffer = () => {
+        if (buffer.length) {
+            mergedArray.push(buffer.join("\n\n"));
+            buffer = [];
+        }
+    };
 
-        // 检测代码块开关
-        if (line.startsWith('```')) {
-            inCodeBlock = !inCodeBlock;
-            result.push(line);
-            continue;
+    for (const item of arr) {
+        // Trim leading whitespace to help identify the list type
+        const trimmed = item.replace(rules.renderer.other.trimStartPattern, "");
+        let type = null;
+
+        // Check if the item is part of an unordered list (starts with * or + or -)
+        if (rules.renderer.list.unorderedListItem.test(trimmed)) {
+            type = "unordered";
+        } else if (rules.renderer.list.orderedListItem.test(trimmed)) {
+            // Check if the item is part of an ordered list (starts with a number followed by a period)
+            type = "ordered";
         }
 
-        // 检测引用块（以 > 开头）
-        const isBlockquote = line.startsWith('>');
-        if (isBlockquote) {
-            inBlockquote = true;
-        } else if (line === '') {
-            inBlockquote = false; // 空行退出引用块
+        if (type) {
+            if (type !== currentType) {
+                flushBuffer();
+
+                currentType = type;
+            }
+
+            buffer.push(item);
+        } else {
+            flushBuffer();
+
+            currentType = null;
+            mergedArray.push(item);
         }
-
-        // 需要处理的逻辑
-        if (!inCodeBlock && !inBlockquote) {
-            // 判断列表项（匹配 - / 数字 / * 开头，允许缩进）
-            const isList = /^[ \t]*([-*] |\d+\. |[a-z]\. )/.test(line);
-
-            // 排除列表项本身
-            if (isList) {
-                prevIsList = true;
-                result.push(line);
-                continue;
-            }
-
-            // 排除列表项的下一行（你的条件2）
-            if (prevIsList) {
-                prevIsList = false;
-                result.push(line);
-                continue;
-            }
-
-            // 处理换行符逻辑
-            if (line !== '' && i < lines.length - 1) {
-                const nextLine = lines[i + 1].trim();
-                // 满足：当前行非空、下一行非空、不是连续换行
-                if (nextLine !== '' && line !== prevLine) {
-                    result.push(line + '\\'); // 添加转义符
-                    prevLine = line;
-                    continue;
-                }
-            }
-        }
-
-        // 默认情况直接追加
-        result.push(line);
-        prevLine = line;
     }
 
-    return result.join('\n');
+    // Flush any remaining items in the buffer at the end
+    flushBuffer();
+
+    return mergedArray;
+}
+
+/**
+ * Splits a string into parts from the end based on a specified regular expression,
+ * while avoiding splitting within code blocks or inline code. The function ensures 
+ * that splits occur only at valid positions (such as double newlines) and respects 
+ * the boundaries of code blocks or inline code.
+ *
+ * This function is useful for handling markdown-like strings, where you want to 
+ * split content based on some delimiter (e.g., double newlines) but avoid splitting 
+ * inside code sections (both block code and inline code).
+ * 
+ * The function processes the string in three main steps:
+ * 1. Identifies all code blocks and inline code to ensure that splits do not occur inside them.
+ * 2. Finds all valid split positions (e.g., double newlines) that are not inside code blocks.
+ * 3. Splits the string from the end, ensuring that the total number of parts does not exceed the specified limit.
+ *
+ * @param {string} str - The input string to split.
+ * @param {RegExp} regex - The regular expression used to identify split positions (e.g., double newlines).
+ * @param {number} [limit=Infinity] - The maximum number of parts to split the string into. Defaults to no limit.
+ * @returns {string[]} - The array of string parts resulting from the split, in reverse order.
+ *
+ * @example
+ * const input = "First part\n\nSecond part\n\n`Inline code`\n\nThird part";
+ * const result = splitFromEnd(input, /\n\n/g);
+ * 
+ * console.log(result);
+ * // Output: [
+ * //   "Second part",
+ * //   "First part"
+ * // ]
+ */
+export function splitFromEnd(str, regex, limit = Infinity) {
+    // Step 1: Identify the boundaries of all code blocks and inline code
+    const codeBoundaries = [];
+    let match;
+
+    while ((match = rules.renderer.other.codeBlocksAndInlineCode.exec(str)) !== null) {
+        codeBoundaries.push({ start: match.index, end: match.index + match[0].length });
+    }
+
+    // Step 2: Find all valid double line break locations (not within the code block)
+    const splitPositions = [];
+    while ((match = regex.exec(str)) !== null) {
+        const pos = match.index;
+        const isInCode = codeBoundaries.some(b => pos >= b.start && pos < b.end);
+
+        if (!isInCode) splitPositions.push(pos);
+    }
+
+    // Step 3: Split the string from back to front
+    const parts = [];
+    let remaining = str;
+    let count = 1;
+
+    // Reverse Split Positions (Back to Front)
+    splitPositions.sort((a, b) => b - a).forEach(pos => {
+        if (count >= limit) return;
+        if (pos >= remaining.length) return;
+
+        // "+ 2" means skipping two line breaks
+        parts.push(remaining.slice(pos + 2));
+        remaining = remaining.slice(0, pos);
+        count++;
+    });
+
+    parts.push(remaining);
+
+    return parts.reverse();
 }
