@@ -78,6 +78,9 @@ export const templates = {
     codespan(type, text, symbol) {
         return simpleClosedSymbol(type, text, symbol, "code");
     },
+    br(type) {
+        return `<br class="${MarkdownClassname.inline}" data-purposes="breaks" data-type="${type}">`;
+    },
     del(type, text, symbol) {
         return simpleClosedSymbol(type, text, symbol, type);
     },
@@ -88,6 +91,6 @@ export const templates = {
         return `<span class="${MarkdownClassname.inline}" data-type="${type}"><span class="${MarkdownClassname.structure}" data-position="prefix">${structure}</span><img src="${href}" alt="${alt}" ${title ? `title="${title}"` : ""}></span>`;
     },
     text(text) {
-        return `<span class="${MarkdownClassname.inline}" data-type="text">${text || "<br>"}</span>`;
+        return `<span class="${MarkdownClassname.inline}" data-type="text">${text || `<br class="${MarkdownClassname.inline}" data-purposes="empty">`}</span>`;
     }
 };
