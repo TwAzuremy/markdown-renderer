@@ -15,9 +15,9 @@ export const rules = {
         },
         code: {
             pattern: /(```[\s\S]*?```)/g,
-            codeBlockOpening: /^```[^\r\n]*\n/,
             codeFenceEndLookahead: /```(?=\n|$)/g,
-            codeFenceWithLanguage: /```[^\n]*\n/g
+            codeFenceWithLanguage: /```[^\n]*\n/g,
+            codeBlockRegex: /^```[\s\S]*```[ \n]*$/
         },
         codeSpan: {
             codeSpanWithEscapes: /(?<!`)`([^`]+)`(?!`)/g
@@ -25,8 +25,13 @@ export const rules = {
         other: {
             trimStartPattern: /^\s*/,
             codeBlocksAndInlineCode: /(```[\s\S]*?```|`[^`]*`)/g,
-            escapedOrUnescapedAngleBrackets: /(\\?)[<>]/g,
-            escapeRegexPattern: /[.*+?^${}()|[\]\\]/g
+            escapedOrUnescapedAngleBrackets: /(\\?)[<>]/g
+        }
+    },
+    // Regular Regex extracted from the source code of marked.
+    marked: {
+        other: {
+            codeRemoveIndent: /^(?: {1,4}| {0,3}\t)/gm
         }
     }
 };
