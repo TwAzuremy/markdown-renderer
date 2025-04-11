@@ -64,8 +64,8 @@ export const renderer = {
 
         return templates.link(type, this.parser.parseInline(tokens), href, title, structures);
     },
-    image({ type, raw, href, title = null }) {
-        return templates.image(type, href, title, raw);
+    image({ type, text, raw, href, title = null }) {
+        return templates.image(type, text, href, title, raw);
     },
     text({ text, tokens }) {
         return tokens ? this.parser.parseInline(tokens) : templates.text(text);

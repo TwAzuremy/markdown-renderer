@@ -84,8 +84,8 @@ export const templates = {
     link(type, text, href, title, structures = ["", ""]) {
         return `<span class="${MarkdownClassname.inline}" data-type="${type}"><span class="${MarkdownClassname.structure}" data-position="prefix">${structures[0]}</span><a href="${href}" ${title ? `title="${title}"` : ""}>${text}</a><span class="${MarkdownClassname.structure}" data-position="suffix">${structures[1]}</span></span>`;
     },
-    image(type, href, title, structure) {
-        return `<span class="${MarkdownClassname.inline}" data-type="${type}"><span class="${MarkdownClassname.structure}" data-position="prefix">${structure}</span><img src="${href}" ${title ? `title="${title}"` : ""}></span>`;
+    image(type, alt, href, title, structure) {
+        return `<span class="${MarkdownClassname.inline}" data-type="${type}"><span class="${MarkdownClassname.structure}" data-position="prefix">${structure}</span><img src="${href}" alt="${alt}" ${title ? `title="${title}"` : ""}></span>`;
     },
     text(text) {
         return `<span class="${MarkdownClassname.inline}" data-type="text">${text || "<br>"}</span>`;
