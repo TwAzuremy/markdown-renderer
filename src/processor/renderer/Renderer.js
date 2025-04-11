@@ -1,32 +1,9 @@
 import { marked } from "marked";
 
-import { templates } from "./Templates";
-import { tokenizer } from "./Tokenizer";
 import { MarkdownPreprocessor } from "./Preprocess";
+import { RENDER_OPTIONS } from "../Options";
 
-const renderer = {
-    paragraph({ type, tokens }) {
-        return templates.paragraph(type, this.parser.parseInline(tokens));
-    },
-    text({ text, tokens }) {
-        return tokens ? this.parser.parseInline(tokens) : templates.text(text);
-    },
-    code(tokens) {
-        console.log("Code", tokens);
-    },
-    codespan(tokens) {
-        console.log("Code Span", tokens);
-    }
-};
-
-marked.use({
-    async: true,
-    pedantic: true,
-    breaks: true,
-    gfm: true,
-    renderer,
-    tokenizer
-});
+marked.use(RENDER_OPTIONS);
 
 /**
  * Asynchronously processes a list of items by parsing each item using the `marked.parse` function,
@@ -45,11 +22,7 @@ async function processList(list) {
     const promises = list.map(item => {
         let processed = item;
 
-        if (processed.trim() === "") {
-            processed += "[EMPTY]";
-        }
-
-        if (processed.endsWith("\n")) {
+        if (processed.trim() === "" || processed.endsWith("\n")) {
             processed += "[EMPTY]";
         }
 
