@@ -6,9 +6,9 @@ import { rules } from "../processor/Rules";
  *
  * @param {String} str
  * @param {String} c
- * @param {Boolean} invert Remove suffix of non-c chars instead. Default falsey.
+ * @param {Boolean} [invert=false] Remove suffix of non-c chars instead. Default false.
  */
-export function rtrim(str, c, invert) {
+export function rtrim(str, c, invert= false) {
     const l = str.length;
     if (l === 0) {
         return "";
