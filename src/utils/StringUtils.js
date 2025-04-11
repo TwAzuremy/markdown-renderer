@@ -8,7 +8,7 @@ import { rules } from "../processor/Rules";
  * @param {String} c
  * @param {Boolean} [invert=false] Remove suffix of non-c chars instead. Default false.
  */
-export function rtrim(str, c, invert= false) {
+export function rtrim(str, c, invert = false) {
     const l = str.length;
     if (l === 0) {
         return "";
@@ -31,6 +31,9 @@ export function rtrim(str, c, invert= false) {
 
     return str.slice(0, l - suffLen);
 }
+
+export const toCamelCase = str =>
+    str.trim().replace(/\s+(.)/g, (_, c) => c.toUpperCase());
 
 /**
  * Retrieves the nesting level of a line based on the number of leading ">" characters.

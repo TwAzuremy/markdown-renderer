@@ -129,5 +129,18 @@ export const tokenizer = {
                 text,
             };
         }
+    },
+    del(src) {
+        // [Modifications] Replace the matching Regex.
+        const cap = rules.marked.del.pattern.exec(src);
+
+        if (cap) {
+            return {
+                type: 'del',
+                raw: cap[0],
+                text: cap[2],
+                tokens: this.lexer.inlineTokens(cap[2]),
+            };
+        }
     }
 };
