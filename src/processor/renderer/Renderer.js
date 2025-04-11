@@ -9,8 +9,13 @@ const renderer = {
         return templates.paragraph(type, this.parser.parseInline(tokens));
     },
     text({ text, tokens }) {
-        return tokens ? this.parser.parseInline(tokens) :
-            templates.text(text);
+        return tokens ? this.parser.parseInline(tokens) : templates.text(text);
+    },
+    code(tokens) {
+        console.log("Code", tokens);
+    },
+    codespan(tokens) {
+        console.log("Code Span", tokens);
     }
 };
 
@@ -27,25 +32,25 @@ marked.use({
  * Asynchronously processes a list of items by parsing each item using the `marked.parse` function,
  * with special handling for empty strings and strings ending with a newline character.
  * 
- * - If an item is an empty string, it is appended with '[EMPTY]'.
- * - If an item ends with a newline character (`\n`), '[EMPTY]' is appended to it.
+ * - If an item is an empty string, it is appended with "[EMPTY]".
+ * - If an item ends with a newline character (`\n`), "[EMPTY]" is appended to it.
  * 
  * After handling these special cases, the function parses each item asynchronously and returns a list of parsed results.
  * 
- * @param {Array} list - The original list of strings to be processed.
- * @returns {Promise<Array>} - A Promise that resolves to an array of parsed results after processing each item.
+ * @param {string[]} list - The original list of strings to be processed.
+ * @returns {Promise<string[]>} - A Promise that resolves to an array of parsed results after processing each item.
  */
 async function processList(list) {
     // Use map to iterate over the list and create an array of Promises
     const promises = list.map(item => {
         let processed = item;
 
-        if (processed.trim() === '') {
-            processed += '[EMPTY]';
+        if (processed.trim() === "") {
+            processed += "[EMPTY]";
         }
 
-        if (processed.endsWith('\n')) {
-            processed += '[EMPTY]';
+        if (processed.endsWith("\n")) {
+            processed += "[EMPTY]";
         }
 
         return marked.parse(processed);

@@ -12,7 +12,7 @@ import { mergeListItems, replaceWithSoftLineWraps, splitFromEnd } from "../../ut
  * - Applying all transformations and returning the final processed text.
  * 
  * @example
- * const processedText = new MarkdownPreprocessor(src)
+ * const processMarkdown = new MarkdownPreprocessor(src)
  *  .replaceWithSoftLineWraps()
  *  .splitFromEnd(/\n\n/g)
  *  .mergeListItems()
@@ -29,7 +29,7 @@ export class MarkdownPreprocessor {
      * and merging list items. The methods modify the content based on a series of 
      * transformation rules while maintaining the integrity of markdown structures.
      *
-     * @param {string} src - The source markdown text to process.
+     * @param {string} src - The source Markdown text to process.
      */
     constructor(src) {
         this.value = src;
@@ -41,13 +41,13 @@ export class MarkdownPreprocessor {
      * while preserving certain formatting rules like code blocks, lists, and blockquotes.
      *
      * This function splits the input text into blocks, specifically separating code blocks marked by triple backticks.
-     * It then processes the text outside of the code blocks to insert soft line breaks while preserving the structure of:
+     * It then processes the text outside the code blocks to insert soft line breaks while preserving the structure of:
      * - Lists (both unordered and ordered)
      * - Blockquotes (preserving their nested levels)
      * - Avoiding consecutive empty lines
      * - Keeping the integrity of code blocks intact.
      * 
-     * @returns {string} - The processed text with soft line breaks inserted.
+     * @returns {MarkdownPreprocessor} - The processed text with soft line breaks inserted.
      */
     replaceWithSoftLineWraps() {
         this.pipeline.push(value => replaceWithSoftLineWraps(value));
@@ -71,7 +71,7 @@ export class MarkdownPreprocessor {
      * 3. Splits the string from the end, ensuring that the total number of parts does not exceed the specified limit.
      *
      * @param {RegExp} separator - The regular expression used to identify split positions (e.g., double newlines).
-     * @returns {string[]} - The array of string parts resulting from the split, in reverse order.
+     * @returns {MarkdownPreprocessor} - The array of string parts resulting from the split, in reverse order.
      */
     splitFromEnd(separator) {
         this.pipeline.push(value => splitFromEnd(value, separator));
@@ -91,7 +91,7 @@ export class MarkdownPreprocessor {
      * the starting characters of each line. When encountering a change in list type or non-list items,
      * the current list is flushed, and the new type is started.
      * 
-     * @returns {string[]} - The processed array with merged list items of the same type and 
+     * @returns {MarkdownPreprocessor} - The processed array with merged list items of the same type and
      *                       preserved non-list items.
      */
     mergeListItems() {
@@ -106,7 +106,7 @@ export class MarkdownPreprocessor {
      * This method processes the input text by applying all functions in the `pipeline` array in sequence. 
      * It reduces the pipeline by applying each function to the current state of the text.
      * 
-     * @returns {string} - The final processed text after all transformations in the pipeline have been applied.
+     * @returns {string[]} - The final processed text after all transformations in the pipeline have been applied.
      */
     submit() {
         return this.pipeline.reduce((acc, fn) => fn?.(acc), this.value)
