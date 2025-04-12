@@ -1,4 +1,6 @@
 .markdown-editor {
+    --paragraph-padding: 8px;
+
     outline: none;
     border: 1px solid #333;
 
@@ -10,16 +12,19 @@
     }
 
     .markdown-block {
-        padding: 8px 0;
+        padding: var(--paragraph-padding) 0;
     }
 
-    [data-type=space] {
-        min-height: 1.5rem;
+    hr.markdown-block {
+        padding: 0;
+        border: none;
+        height: 1px;
+        background-color: #333;
     }
 
-    blockquote {
+    blockquote.markdown-block {
         border-left: 2px solid #333;
-        padding-left: 8px;
+        padding: 0 0 0 var(--paragraph-padding);
     }
 
     li>:is(ul, ol) {
@@ -32,5 +37,16 @@
 
     [data-type=text] {
         white-space: pre-wrap;
+    }
+
+    li.task-item {
+        position: relative;
+        padding-left: 8px;
+
+        >input.markdown-task-list {
+            position: absolute;
+            top: calc(var(--paragraph-padding) + 6px);
+            right: calc(100% - 4px);
+        }
     }
 }

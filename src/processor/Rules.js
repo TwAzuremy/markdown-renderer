@@ -8,7 +8,8 @@ export const rules = {
             pattern: /(```[\s\S]*?```)/g,
             codeFenceEndLookahead: /```(?=\n|$)/g,
             codeFenceWithLanguage: /```[^\n]*\n/g,
-            codeBlockRegex: /^```[\s\S]*```[ \n]*$/
+            codeBlockRegex: /^```[\s\S]*```[ \n]*$/,
+            separateLanguageAndCode: /^```([^\n]*)\n([\s\S]*?)\n```$/
         },
         blockquote: {
             blockQuotePattern: /^(?:(>\s*)+)/,
@@ -32,9 +33,6 @@ export const rules = {
     marked: {
         del: {
             pattern: /^(~~?)(?=[^\s~])((?:\\.|[^\\])*?(?:\\.|[^\s~\\]))\1(?=[^~]|$)/
-        },
-        other: {
-            codeRemoveIndent: /^(?: {1,4}| {0,3}\t)/gm
         }
     }
 };

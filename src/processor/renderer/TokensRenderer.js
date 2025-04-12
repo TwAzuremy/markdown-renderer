@@ -27,6 +27,39 @@ const concatTexts = (tokens, depth = 0, maxDepth = 1000) => {
 
 export const renderer = {
     // Block-level renderer methods
+    code({ type, text, language }) {
+        return templates.code(type, text, language);
+    },
+    blockquote({ type, tokens }) {
+        return templates.blockquote(type, this.parser.parse(tokens));
+    },
+    // TODO [新增] 暂无方法自定义
+    // html(tokens) {
+    //     console.log(tokens);
+    //
+    //     return tokens.text;
+    // },
+    hr({ type, raw }) {
+        return templates.hr(type, raw);
+    },
+    list({ type, items, ordered }) {
+        const li = items.map(this.listitem).join("");
+        const tag = ordered ? "ol" : "ul";
+
+        return templates.list(type, li, tag);
+    },
+    listitem({ type, tokens, task, checked = false }) {
+        if (task) {
+            const checkbox = this.checkbox(checked);
+
+            return templates.listitem(type, checkbox + this.parser.parse(tokens), task);
+        }
+
+        return templates.listitem(type, this.parser.parse(tokens));
+    },
+    checkbox(checked) {
+        return templates.checkbox(checked);
+    },
     heading({ type, tokens, depth }) {
         const text = this.parser.parseInline(tokens);
 

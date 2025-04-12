@@ -2,7 +2,8 @@ const MarkdownClassname = {
     block: "markdown-block",
     inline: "markdown-inline",
     symbol: "markdown-symbol",
-    structure: "markdown-structure"
+    structure: "markdown-structure",
+    taskList: "markdown-task-list"
 };
 
 /**
@@ -62,6 +63,25 @@ function simpleClosedSymbol(type, text, symbol, tag) {
 
 export const templates = {
     // Block-level renderer methods
+    code(type, content, language) {
+        // TODO [新增] 考虑输入语言的地方如何放置
+        return `<div class="${MarkdownClassname.block}" data-type="${type}" data-language="${language}"><pre class="markdown-code language-${language}">${content}</pre></div>`;
+    },
+    blockquote(type, content) {
+        return `<blockquote class="${MarkdownClassname.block}" data-type="${type}">${content}</blockquote>`;
+    },
+    hr(type, raw) {
+        return `<hr class="${MarkdownClassname.block}" data-type="${type}" data-raw="${raw}">`;
+    },
+    list(type, body, tag) {
+        return `<${tag} class="${MarkdownClassname.block}" data-type="${type}">${body}</${tag}>`;
+    },
+    listitem(type, content, isTask = false) {
+        return `<li class="${isTask ? "task-item" : ""}" data-type="${type}">${content}</li>`;
+    },
+    checkbox(checked) {
+        return `<input class="${MarkdownClassname.taskList}" type="checkbox" ${checked ? "checked" : ""}>`
+    },
     heading(type, text, depth, marker) {
         return `<h${depth} id="${"#".repeat(depth) + marker}" class="${MarkdownClassname.block}" data-type="${type}">${text}</h${depth}>`;
     },
@@ -91,6 +111,6 @@ export const templates = {
         return `<span class="${MarkdownClassname.inline}" data-type="${type}"><span class="${MarkdownClassname.structure}" data-position="prefix">${structure}</span><img src="${href}" alt="${alt}" ${title ? `title="${title}"` : ""}></span>`;
     },
     text(text) {
-        return `<span class="${MarkdownClassname.inline}" data-type="text">${text || `<br class="${MarkdownClassname.inline}" data-purposes="empty">`}</span>`;
+        return `<span class="${MarkdownClassname.inline}" data-type="text">${text || `<br>`}</span>`;
     }
 };

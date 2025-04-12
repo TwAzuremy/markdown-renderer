@@ -1,6 +1,5 @@
 import { rtrim } from "../../utils/StringUtils";
 import { rules } from "../Rules";
-import { RENDER_OPTIONS } from "../Options";
 
 /**
  * Adds a placeholder `[EMPTY]` to blockquotes that are followed by another blockquote with no content in between.
@@ -28,20 +27,57 @@ function addEmptyPlaceholder(blockquotes) {
     return blockquotes;
 }
 
+/**
+ * Parses a code block string to separate the language and content.
+ * 
+ * This function extracts the programming language (if specified) and the content of the code block 
+ * from a string that may contain code block delimiters like ``` (common in Markdown).
+ * 
+ * - If the code block has a language specified (e.g., ```javascript), it will be extracted.
+ * - If the language is not specified, the code block's content is returned with an empty language field.
+ * - The function also removes the code block delimiters from the content if present.
+ * 
+ * @param {string} code - The raw string of the code block to be parsed.
+ * @returns {Object} An object containing two properties:
+ * - `language`: The language of the code block, or an empty string if not specified.
+ * - `content`: The content of the code block, with the delimiters removed.
+ */
+function parseCodeBlock(code) {
+    const match = code.match(rules.renderer.code.separateLanguageAndCode);
+
+    if (match) {
+        const language = match ? match[1].trim() || "" : "";
+        const content = match ? match[2] || "" : "";
+
+        return {
+            language: language || "",
+            content: content
+        };
+    }
+
+    // Handle cases where the code block doesn't match the expected pattern (e.g., malformed code block)
+    return {
+        language: "",
+        // Remove any remaining code block delimiters (```)
+        content: code.replace(/^```|```$/g, "")
+    };
+}
+
 export const tokenizer = {
     code(src) {
         // [Modifications] Replace the matching Regex.
         const cap = rules.renderer.code.pattern.exec(src);
 
         if (cap) {
-            const text = cap[0].replace(rules.marked.other.codeRemoveIndent, '');
+            // [Modifications] Separating the programming language from the code.
+            const { language, content } = parseCodeBlock(cap[0]);
+
             return {
-                type: 'code',
+                type: "code",
                 raw: cap[0],
-                codeBlockStyle: 'indented',
-                text: !RENDER_OPTIONS.pedantic
-                    ? rtrim(text, '\n')
-                    : text,
+                codeBlockStyle: "indented",
+                text: content,
+                language
             };
         }
     },
@@ -50,9 +86,9 @@ export const tokenizer = {
 
         if (cap) {
             // [Modifications] Keep the blank lines in it.
-            let lines = addEmptyPlaceholder(rtrim(cap[0], '\n').split('\n'));
-            let raw = '';
-            let text = '';
+            let lines = addEmptyPlaceholder(rtrim(cap[0], "\n").split("\n"));
+            let raw = "";
+            let text = "";
             const tokens = [];
 
             while (lines.length > 0) {
@@ -73,11 +109,11 @@ export const tokenizer = {
                 }
                 lines = lines.slice(i);
 
-                const currentRaw = currentLines.join('\n');
+                const currentRaw = currentLines.join("\n");
                 const currentText = currentRaw
-                    // precede setext continuation with 4 spaces so it isn't a setext
-                    .replace(this.rules.other.blockquoteSetextReplace, '\n    $1')
-                    .replace(this.rules.other.blockquoteSetextReplace2, '');
+                    // precede setext continuation with 4 spaces so it isn"t a setext
+                    .replace(this.rules.other.blockquoteSetextReplace, "\n    $1")
+                    .replace(this.rules.other.blockquoteSetextReplace2, "");
                 raw = raw ? `${raw}\n${currentRaw}` : currentRaw;
                 text = text ? `${text}\n${currentText}` : currentText;
 
@@ -95,35 +131,35 @@ export const tokenizer = {
 
                 const lastToken = tokens.at(-1);
 
-                if (lastToken?.type === 'code') {
+                if (lastToken?.type === "code") {
                     // blockquote continuation cannot be preceded by a code block
                     break;
-                } else if (lastToken?.type === 'blockquote') {
+                } else if (lastToken?.type === "blockquote") {
                     // include continuation in nested blockquote
                     const oldToken = lastToken;
-                    const newText = oldToken.raw + '\n' + lines.join('\n');
+                    const newText = oldToken.raw + "\n" + lines.join("\n");
                     const newToken = this.blockquote(newText);
                     tokens[tokens.length - 1] = newToken;
 
                     raw = raw.substring(0, raw.length - oldToken.raw.length) + newToken.raw;
                     text = text.substring(0, text.length - oldToken.text.length) + newToken.text;
                     break;
-                } else if (lastToken?.type === 'list') {
+                } else if (lastToken?.type === "list") {
                     // include continuation in nested list
                     const oldToken = lastToken;
-                    const newText = oldToken.raw + '\n' + lines.join('\n');
+                    const newText = oldToken.raw + "\n" + lines.join("\n");
                     const newToken = this.list(newText);
                     tokens[tokens.length - 1] = newToken;
 
                     raw = raw.substring(0, raw.length - lastToken.raw.length) + newToken.raw;
                     text = text.substring(0, text.length - oldToken.raw.length) + newToken.raw;
-                    lines = newText.substring(tokens.at(-1).raw.length).split('\n');
+                    lines = newText.substring(tokens.at(-1).raw.length).split("\n");
                     continue;
                 }
             }
 
             return {
-                type: 'blockquote',
+                type: "blockquote",
                 raw,
                 tokens,
                 text,
@@ -136,7 +172,7 @@ export const tokenizer = {
 
         if (cap) {
             return {
-                type: 'del',
+                type: "del",
                 raw: cap[0],
                 text: cap[2],
                 tokens: this.lexer.inlineTokens(cap[2]),
