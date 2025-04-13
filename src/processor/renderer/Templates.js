@@ -1,9 +1,12 @@
+import { escapeString } from "../../utils/StringUtils";
+
 const MarkdownClassname = {
     block: "markdown-block",
     inline: "markdown-inline",
     symbol: "markdown-symbol",
     structure: "markdown-structure",
-    taskList: "markdown-task-list"
+    taskList: "markdown-task-list",
+    custom: "markdown-custom-element"
 };
 
 /**
@@ -61,6 +64,30 @@ function simpleClosedSymbol(type, text, symbol, tag) {
     return `<span class="${MarkdownClassname.inline}" data-type="${type}"><span class="${MarkdownClassname.symbol}" data-position="prefix">${symbol}</span>${inlineText}<span class="${MarkdownClassname.symbol}" data-position="suffix">${symbol}</span></span>`
 }
 
+function addClassToHtmlTag(htmlString, className) {
+    const tagNameMatch = htmlString.match(/^<\s*([a-zA-Z][^\s/>]*)/);
+    if (!tagNameMatch) return htmlString;
+    const tagName = tagNameMatch[1];
+
+    const tempDiv = document.createElement('div');
+    try {
+        tempDiv.innerHTML = htmlString + `</${tagName}>`;
+    } catch (e) {
+        return htmlString;
+    }
+
+    const element = tempDiv.firstElementChild;
+    if (!element) return htmlString;
+
+    // 修复点：拆分类名为数组并逐个添加
+    const classes = className.split(/\s+/).filter(c => c); // 过滤空字符串
+    element.classList.add(...classes);
+
+    const newHtml = element.outerHTML;
+    const startTagEndIndex = newHtml.indexOf('>');
+    return startTagEndIndex === -1 ? htmlString : newHtml.substring(0, startTagEndIndex + 1);
+}
+
 export const templates = {
     // Block-level renderer methods
     code(type, content, language) {
@@ -69,6 +96,27 @@ export const templates = {
     },
     blockquote(type, content) {
         return `<blockquote class="${MarkdownClassname.block}" data-type="${type}">${content}</blockquote>`;
+    },
+    htmlSingle(type, block, content) {
+        const escapeContent = escapeString(content)
+
+        return block ? `<p class="${MarkdownClassname.block}" data-type="${type}"><span class="${MarkdownClassname.symbol}" data-type="prefix">${escapeContent}</span>${content}</p>` : `<span class="${MarkdownClassname.inline}" data-type="${type}"><span class="${MarkdownClassname.symbol}" data-type="prefix">${escapeContent}</span>${content}</span>`;
+    },
+    htmlBlock(tags, content) {
+        const prefixTag = escapeString(tags[0]);
+        const suffixTag = escapeString(tags[1]);
+
+        tags[0] = addClassToHtmlTag(tags[0], `${MarkdownClassname.custom}`);
+
+        return `<div class="${MarkdownClassname.block}" data-type="custom"><span class="${MarkdownClassname.symbol}" data-type="prefix">${prefixTag}</span>${tags[0]}${content}${tags[1]}<span class="${MarkdownClassname.symbol}" data-type="suffix">${suffixTag}</span></div>`;
+    },
+    htmlInline(tags, content) {
+        const prefixTag = escapeString(tags[0]);
+        const suffixTag = escapeString(tags[1]);
+
+        tags[0] = addClassToHtmlTag(tags[0], `${MarkdownClassname.custom}`);
+
+        return `<span class="${MarkdownClassname.inline}" data-type="custom"><span class="${MarkdownClassname.symbol}" data-type="prefix">${prefixTag}</span>${tags[0]}${content}${tags[1]}<span class="${MarkdownClassname.symbol}" data-type="suffix">${suffixTag}</span></span>`;
     },
     hr(type, raw) {
         return `<hr class="${MarkdownClassname.block}" data-type="${type}" data-raw="${raw}">`;
@@ -87,6 +135,19 @@ export const templates = {
     },
     paragraph(type, content) {
         return `<p class="${MarkdownClassname.block}" data-type="${type}">${content}</p>`;
+    },
+    table(type, header, body) {
+        return `<table class="${MarkdownClassname.block}" data-type="${type}"><thead>${header}</thead>${body}</table>`
+    },
+    tablerow(text) {
+        return `<tr>${text}</tr>`;
+    },
+    tablecell(type, content, align) {
+        const tag = align
+            ? `<${type} align="${align}">`
+            : `<${type}>`;
+
+        return `${tag}${content}</${type}>`;
     },
     // Inline-level renderer methods
     strong(type, text, symbol) {

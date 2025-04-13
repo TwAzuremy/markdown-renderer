@@ -1,4 +1,4 @@
-import { toCamelCase } from "../../utils/StringUtils";
+import { escapeString, toCamelCase } from "../../utils/StringUtils";
 import { templates } from "./Templates";
 
 /**
@@ -28,17 +28,26 @@ const concatTexts = (tokens, depth = 0, maxDepth = 1000) => {
 export const renderer = {
     // Block-level renderer methods
     code({ type, text, language }) {
-        return templates.code(type, text, language);
+        return templates.code(type, escapeString(text), language);
     },
     blockquote({ type, tokens }) {
         return templates.blockquote(type, this.parser.parse(tokens));
     },
-    // TODO [新增] 暂无方法自定义
-    // html(tokens) {
-    //     console.log(tokens);
-    //
-    //     return tokens.text;
-    // },
+    html(tokens) {
+        console.log("html", tokens);
+
+        if (tokens.single) {
+            return templates.htmlSingle(tokens.type, tokens.block, tokens.raw);
+        }
+
+        const tags = tokens.raw.split(tokens.text);
+
+        if (tokens.block) {
+            return templates.htmlBlock(tags, this.parser.parse(tokens.tokens));
+        } else {
+            return templates.htmlInline(tags, this.parser.parseInline(tokens.tokens));
+        }
+    },
     hr({ type, raw }) {
         return templates.hr(type, raw);
     },
@@ -70,7 +79,41 @@ export const renderer = {
         return templates.heading(type, text, depth, marker);
     },
     paragraph({ type, tokens }) {
+        const text = tokens?.[0]?.text;
+
+        if (tokens[0].type === "text" &&
+            /^<[a-zA-Z ]+>$/.test(text)) return;
+
+        if (tokens[0].type === "html" && tokens[0].block) {
+            return this.html(tokens[0]);
+        }
+
         return templates.paragraph(type, this.parser.parseInline(tokens));
+    },
+    table(token) {
+        // header
+        const header = this.tablerow({
+            text: token.header.map(j => this.tablecell(j)).join("")
+        });
+
+        let body = token.rows.map(row =>
+            this.tablerow({
+                text: row.map(k => this.tablecell(k)).join("")
+            })
+        ).join("");
+
+        body = body ? `<tbody>${body}</tbody>` : "";
+
+        return templates.table(token.type, header, body);
+    },
+    tablerow({ text }) {
+        return templates.tablerow(text);
+    },
+    tablecell(token) {
+        const content = this.parser.parseInline(token.tokens);
+        const type = token.header ? "th" : "td";
+
+        return templates.tablecell(type, content, token.align);
     },
     // Inline-level renderer methods
     strong({ type, text, raw, tokens }) {
@@ -85,8 +128,11 @@ export const renderer = {
     },
     codespan({ type, text, raw }) {
         const symbol = raw.split(text)[0];
+        const content = templates.text(escapeString(text));
 
-        return templates.codespan(type, templates.text(text), symbol);
+        console.log(content);
+
+        return templates.codespan(type, content, symbol);
     },
     br({ type }) {
         return templates.br(type);

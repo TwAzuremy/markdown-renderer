@@ -34,7 +34,7 @@ function addEmptyPlaceholder(blockquotes) {
  * from a string that may contain code block delimiters like ``` (common in Markdown).
  * 
  * - If the code block has a language specified (e.g., ```javascript), it will be extracted.
- * - If the language is not specified, the code block's content is returned with an empty language field.
+ * - If the language is not specified, the code block"s content is returned with an empty language field.
  * - The function also removes the code block delimiters from the content if present.
  * 
  * @param {string} code - The raw string of the code block to be parsed.
@@ -55,12 +55,61 @@ function parseCodeBlock(code) {
         };
     }
 
-    // Handle cases where the code block doesn't match the expected pattern (e.g., malformed code block)
+    // Handle cases where the code block doesn"t match the expected pattern (e.g., malformed code block)
     return {
         language: "",
         // Remove any remaining code block delimiters (```)
         content: code.replace(/^```|```$/g, "")
     };
+}
+
+/**
+ * From the marked source code of helpers.ts.
+ * 
+ * @param {string} tableRow 
+ * @param {number} count 
+ * @returns 
+ */
+function splitCells(tableRow, count = 0) {
+    // ensure that every cell-delimiting pipe has a space
+    // before it to distinguish it from an escaped pipe
+    const row = tableRow.replace(/\|/g, (match, offset, str) => {
+        let escaped = false;
+        let curr = offset;
+        while (--curr >= 0 && str[curr] === "\\") escaped = !escaped;
+        if (escaped) {
+            // odd number of slashes means | is escaped
+            // so we leave it alone
+            return "|";
+        } else {
+            // add space before unescaped |
+            return " |";
+        }
+    }),
+        cells = row.split(/ \|/);
+    let i = 0;
+
+    // First/last cell in a row cannot be empty if it has no leading/trailing pipe
+    if (!cells[0].trim()) {
+        cells.shift();
+    }
+    if (cells.length > 0 && !cells.at(-1)?.trim()) {
+        cells.pop();
+    }
+
+    if (count) {
+        if (cells.length > count) {
+            cells.splice(count);
+        } else {
+            while (cells.length < count) cells.push("");
+        }
+    }
+
+    for (; i < cells.length; i++) {
+        // leading or trailing whitespace is ignored per the gfm spec
+        cells[i] = cells[i].trim().replace(/\\\|/g, "|");
+    }
+    return cells;
 }
 
 export const tokenizer = {
@@ -164,6 +213,115 @@ export const tokenizer = {
                 tokens,
                 text,
             };
+        }
+    },
+    html(src) {
+        const cap = new RegExp(rules.renderer.html.blockPattern).exec(src);
+
+        if (cap) {
+            const tagName = cap[2] ?? cap[6];
+
+            return {
+                type: "html",
+                raw: cap[0],
+                block: true,
+                single: !!!cap[4],
+                tag: tagName,
+                text: cap[4] ?? "",
+                tokens: this.lexer.blockTokens(cap[4] ?? "", [])
+            }
+        }
+    },
+    table(src) {
+        // [Modifications] Replace the new regex, the original one is invalid.
+        const cap = new RegExp(rules.renderer.table.pattern).exec(src);
+
+        if (!cap) {
+            return;
+        }
+
+        if (!this.rules.other.tableDelimiter.test(cap[2])) {
+            // delimiter row must have a pipe (|) or colon (:) otherwise it is a setext heading
+            return;
+        }
+
+        const headers = splitCells(cap[1]);
+        const aligns = cap[2].replace(this.rules.other.tableAlignChars, "").split("|");
+        const rows = cap[3]?.trim() ? cap[3].replace(this.rules.other.tableRowBlankLine, "").split("\n") : [];
+
+        const item = {
+            type: "table",
+            raw: cap[0],
+            header: [],
+            align: [],
+            rows: [],
+        };
+
+        if (headers.length !== aligns.length) {
+            // header and align columns must be equal, rows can be different.
+            return;
+        }
+
+        for (const align of aligns) {
+            if (this.rules.other.tableAlignRight.test(align)) {
+                item.align.push("right");
+            } else if (this.rules.other.tableAlignCenter.test(align)) {
+                item.align.push("center");
+            } else if (this.rules.other.tableAlignLeft.test(align)) {
+                item.align.push("left");
+            } else {
+                item.align.push(null);
+            }
+        }
+
+        for (let i = 0; i < headers.length; i++) {
+            // [Modifications] Insert empty placeholders for better editing.
+            const text = headers[i] ? headers[i] : "[EMPTY]";
+
+            item.header.push({
+                text,
+                tokens: this.lexer.inline(text),
+                header: true,
+                align: item.align[i],
+            });
+        }
+
+        for (const row of rows) {
+            item.rows.push(splitCells(row, item.header.length).map((cell, i) => {
+                // [Modifications] Insert empty placeholders for better editing.
+                const text = cell ? cell : "[EMPTY]";
+
+                return {
+                    text,
+                    tokens: this.lexer.inline(text),
+                    header: false,
+                    align: item.align[i],
+                };
+            }));
+        }
+
+        return item;
+    },
+    tag(src) {
+        const cap = new RegExp(rules.renderer.html.inlinePattern).exec(src);
+        const blockCap = new RegExp(rules.renderer.html.blockPattern).exec(src);
+
+        if (blockCap) {
+            return this.html(src);
+        }
+
+        if (cap) {
+            const tagName = cap[2] ?? cap[6];
+
+            return {
+                type: "html",
+                raw: cap[0],
+                block: false,
+                single: !!!cap[4],
+                tag: tagName,
+                text: cap[4] ?? "",
+                tokens: this.lexer.inline(cap[4] ?? "")
+            }
         }
     },
     del(src) {

@@ -303,3 +303,93 @@ export function splitFromEnd(str, regex, limit = Infinity) {
 
     return parts.reverse();
 }
+
+/**
+ * Returns a set of HTML block-level tags that are commonly used to structure content 
+ * in a webpage. Block-level elements typically occupy the entire width of their 
+ * container and can contain other block or inline elements.
+ *
+ * @returns {Set<string>} A set containing HTML block-level tags.
+ */
+export function getHTMLBlockTags() {
+    return new Set([
+        // Document structure
+        "section", "article", "aside", "header", "footer", "nav", "main",
+        // Headings
+        "h1", "h2", "h3", "h4", "h5", "h6",
+        // Content grouping
+        "div", "p", "hr", "pre", "blockquote", "address",
+        // Lists & description
+        "ul", "ol", "dl",
+        // Table
+        "table",
+        // Form-related
+        "form", "fieldset",
+        // Media & images
+        "figure",
+        // Other
+        "details", "dialog"
+    ]);
+}
+
+/**
+ * Returns a set of HTML void tags, which are self-closing elements that do not have
+ * a closing tag. These elements are typically used to embed resources or add
+ * content to a page without requiring separate start and end tags.
+ *
+ * @returns {Set<string>} A set containing HTML void tags.
+ */
+export function getHTMLVoidTags() {
+    return new Set([
+        "area", "base", "br", "col", "embed", "hr", "img", "input",
+        "link", "meta", "param", "source", "track", "wbr"
+    ]);
+}
+
+export function escapeString(str) {
+    const escapeMap = {
+        "<": "&lt;",
+        ">": "&#62;"
+        // 添加其他需要转义的字符
+    };
+    let result = '';
+    let backslashCount = 0;
+
+    for (let i = 0; i < str.length; i++) {
+        const c = str[i];
+        if (c === '\\') {
+            backslashCount++;
+            continue;
+        }
+
+        // 处理前面的反斜杠
+        let backslashPrefix = '';
+        if (backslashCount > 0) {
+            const evenCount = Math.floor(backslashCount / 2) * 2;
+            backslashPrefix = '\\'.repeat(evenCount);
+            if (backslashCount % 2 !== 0) {
+                backslashPrefix += '\\';
+            }
+        }
+        result += backslashPrefix;
+
+        // 处理当前字符
+        if (backslashCount % 2 === 0) {
+            result += escapeMap[c] || c;
+        } else {
+            result += c;
+        }
+        backslashCount = 0;
+    }
+
+    // 处理末尾剩余的反斜杠
+    if (backslashCount > 0) {
+        const evenCount = Math.floor(backslashCount / 2) * 2;
+        result += '\\'.repeat(evenCount);
+        if (backslashCount % 2 !== 0) {
+            result += '\\';
+        }
+    }
+
+    return result;
+}

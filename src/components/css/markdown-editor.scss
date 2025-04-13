@@ -17,6 +17,7 @@
 
     hr.markdown-block {
         padding: 0;
+        margin: var(--paragraph-padding) 0;
         border: none;
         height: 1px;
         background-color: #333;
@@ -48,5 +49,21 @@
             top: calc(var(--paragraph-padding) + 6px);
             right: calc(100% - 4px);
         }
+    }
+
+    table.markdown-block {
+        border-collapse: collapse;
+        padding: 0;
+        margin: var(--paragraph-padding) 0;
+    }
+
+    td,
+    th {
+        border: 1px solid #dfe2e5;
+        padding: 0.6rem 1rem;
+    }
+
+    tr:nth-child(even) {
+        background-color: #f6f8fa;
     }
 }
