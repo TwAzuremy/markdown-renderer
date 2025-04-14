@@ -74,15 +74,6 @@ export const renderer = {
         return templates.heading(type, text, depth, marker);
     },
     paragraph({ type, tokens }) {
-        const text = tokens?.[0]?.text;
-
-        if (tokens[0].type === "text" &&
-            /^<[a-zA-Z ]+>$/.test(text)) return;
-
-        if (tokens[0].type === "html" && tokens[0].block) {
-            return this.html(tokens[0]);
-        }
-
         return templates.paragraph(type, this.parser.parseInline(tokens));
     },
     table(token) {

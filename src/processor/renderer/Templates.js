@@ -186,6 +186,8 @@ export const templates = {
         return `<span class="${MarkdownClassname.inline}" data-type="${type}"><span class="${MarkdownClassname.structure}" data-position="prefix">${structure}</span><img src="${href}" alt="${alt}" ${title ? `title="${title}"` : ""}></span>`;
     },
     text(text) {
-        return `<span class="${MarkdownClassname.inline}" data-type="text">${text || `<br>`}</span>`;
+        const isEmpty = !text || text === "[EMPTY]";
+
+        return `<span class="${MarkdownClassname.inline}" data-type="text">${isEmpty ? `<br class="empty-placeholder">` : text}</span>`;
     }
 };
