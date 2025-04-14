@@ -236,72 +236,43 @@ export function mergeListItems(arr) {
 }
 
 /**
- * Splits a string into parts from the end based on a specified regular expression,
- * while avoiding splitting within code blocks or inline code. The function ensures 
- * that splits occur only at valid positions (such as double newlines) and respects 
- * the boundaries of code blocks or inline code.
- *
- * This function is useful for handling markdown-like strings, where you want to 
- * split content based on some delimiter (e.g., double newlines) but avoid splitting 
- * inside code sections (both block code and inline code).
+ * Splits a string from the end using a specified separator.
+ * The function searches for the last occurrence of the separator in the string and splits the string into parts
+ * from that point. The result is reversed to maintain the order of segments from the end.
  * 
- * The function processes the string in three main steps:
- * 1. Identifies all code blocks and inline code to ensure that splits do not occur inside them.
- * 2. Finds all valid split positions (e.g., double newlines) that are not inside code blocks.
- * 3. Splits the string from the end, ensuring that the total number of parts does not exceed the specified limit.
- *
- * @param {string} str - The input string to split.
- * @param {RegExp} regex - The regular expression used to identify split positions (e.g., double newlines).
- * @param {number} [limit=Infinity] - The maximum number of parts to split the string into. Defaults to no limit.
- * @returns {string[]} - The array of string parts resulting from the split, in reverse order.
- *
- * @example
- * const input = "First part\n\nSecond part\n\n`Inline code`\n\nThird part";
- * const result = splitFromEnd(input, /\n\n/g);
- * 
- * console.log(result);
- * // Output: [
- * //   "Second part",
- * //   "First part"
- * // ]
+ * @param {string} str - The input string that needs to be split.
+ * @param {string} separator - The separator to use for splitting the string.
+ * @returns {Array} - An array of string segments, ordered as if splitting from the end.
  */
-export function splitFromEnd(str, regex, limit = Infinity) {
-    // Step 1: Identify the boundaries of all code blocks and inline code
-    const codeBoundaries = [];
-    let match;
-
-    while ((match = rules.renderer.other.codeBlocksAndInlineCode.exec(str)) !== null) {
-        codeBoundaries.push({ start: match.index, end: match.index + match[0].length });
-    }
-
-    // Step 2: Find all valid double line break locations (not within the code block)
-    const splitPositions = [];
-    while ((match = regex.exec(str)) !== null) {
-        const pos = match.index;
-        const isInCode = codeBoundaries.some(b => pos >= b.start && pos < b.end);
-
-        if (!isInCode) splitPositions.push(pos);
-    }
-
-    // Step 3: Split the string from back to front
-    const parts = [];
+export function splitFromEnd(str, separator) {
+    const result = [];
     let remaining = str;
-    let count = 1;
+    const separatorLength = separator.length;
 
-    // Reverse Split Positions (Back to Front)
-    splitPositions.sort((a, b) => b - a).forEach(pos => {
-        if (count >= limit) return;
-        if (pos >= remaining.length) return;
+    // If the separator is an empty string, return an array of individual characters.
+    if (separator === '') {
+        return [...str];
+    }
 
-        // "+ 2" means skipping two line breaks
-        parts.push(remaining.slice(pos + 2));
-        remaining = remaining.slice(0, pos);
-        count++;
-    });
+    // Start by searching for the separator from the end of the string
+    let lastIndex = remaining.lastIndexOf(separator);
+    while (lastIndex !== -1) {
+        // Slice the part of the string after the separator and push it into the result
+        const segment = remaining.slice(lastIndex + separatorLength);
+        result.push(segment);
 
-    parts.push(remaining);
+        // Update the remaining string to be the part before the separator
+        remaining = remaining.slice(0, lastIndex);
 
-    return parts.reverse();
+        // Search for the next occurrence of the separator
+        lastIndex = remaining.lastIndexOf(separator);
+    }
+
+    // Add the remaining part of the string (the part before the first separator)
+    result.push(remaining);
+
+    // Reverse the result to match the order from the end to the start
+    return result.reverse();
 }
 
 /**
