@@ -3,14 +3,14 @@ import { getHTMLBlockTags, getHTMLVoidTags } from "../utils/StringUtils";
 /**
  * Creates a regular expression for matching HTML tags based on the specified type.
  * The regex can match both block-level or inline HTML tags, including both closing and void tags.
- * 
+ *
  * @param {string} [type="block"] - The type of HTML tags to match. It can be either "block" or "inline".
  *                                  - "block" matches block-level tags (e.g., <div>, <p>) and void tags (e.g., <hr>).
  *                                  - "inline" matches inline tags (e.g., <span>, <a>) and void tags (e.g., <img>).
- * 
- * @returns {RegExp} - The regular expression to match the specified type of HTML tags. 
+ * @param {boolean} [isStart=true] - Used to add a starting symbol.
+ * @returns {RegExp} - The regular expression to match the specified type of HTML tags.
  *                     The regex includes both matching opening/closing tags and self-closing tags.
- * 
+ *
  * @example
  * const regexBlock = createHTMLTagsRegex("block");
  * const regexInline = createHTMLTagsRegex("inline");
@@ -70,13 +70,13 @@ export const rules = {
             inlinePattern: createHTMLTagsRegex("inline")
         },
         blockquote: {
-            blockQuotePattern: /^(?:(>\s*)+)/,
+            blockQuotePattern: /^(>\s*)+/,
             blockquoteEmptyLine: /^>\s*$/
         },
         list: {
-            pattern: /^\s*([-*+]|\d+\.\s)/,
+            pattern: /^\s*([-+]|\d+\.\s)/,
             orderedListItem: /^\d+\.\s+/,
-            unorderedListItem: /^[*+-]\s+/
+            unorderedListItem: /^[+-]\s+/
         },
         table: {
             pattern: /^\s*(\|.*\|)\s*\r?\n\s*(\|(?: *:?-{3,}:? *\|)+)(?:\s*\r?\n\s*((?:^[^\S\r\n]*\|.*\|[^\S\r\n]*(?:\r?\n|$))+))*$/gm
