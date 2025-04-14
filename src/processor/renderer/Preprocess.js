@@ -55,9 +55,15 @@ export class MarkdownPreprocessor {
         return this;
     }
 
+    /**
+     * Escapes HTML block tags in the provided source string while preserving the content of code blocks.
+     * The function detects block-level HTML tags and replaces them with their escaped equivalents, ensuring 
+     * the integrity of any code blocks by excluding them from the transformation.
+     * 
+     * @returns {string} The source string with HTML block tags escaped.
+     */
     escapeHTMLBlock() {
         this.pipeline.push(value => escapeHTMLBlock(value));
-        // console.log(escapeHTMLBlock(this.value));
 
         return this;
     }
