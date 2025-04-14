@@ -15,7 +15,7 @@ import { getHTMLBlockTags, getHTMLVoidTags } from "../utils/StringUtils";
  * const regexBlock = createHTMLTagsRegex("block");
  * const regexInline = createHTMLTagsRegex("inline");
  */
-function createHTMLTagsRegex(type = "block") {
+export function createHTMLTagsRegex(type = "block", isStart = true) {
     const blockTags = [...getHTMLBlockTags()];
     const voidTags = [...getHTMLVoidTags()];
 
@@ -41,9 +41,9 @@ function createHTMLTagsRegex(type = "block") {
     // Construct the regular expression pattern.
     const pattern = [
         // Match closing tags (group 1 to group 4).
-        closeTags && `(^<(${closeTags})(\\s[^>]*?)?>([\\s\\S]*?)<\\/\\2>)`,
+        closeTags && `(${isStart ? "^" : ""}<(${closeTags})(\\s[^>]*?)?>([\\s\\S]*?)<\\/\\2>)`,
         // Match self-closing tags (group 5 to group 7).
-        voidElements && `(^<(${voidElements})(\\s[^>]*?)?\\/?>)`
+        voidElements && `(${isStart ? "^" : ""}<(${voidElements})(\\s[^>]*?)?\\/?>)`
     ]
         // Remove empty parts.
         .filter(Boolean)

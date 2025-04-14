@@ -1,4 +1,4 @@
-import { mergeListItems, replaceWithSoftLineWraps, splitFromEnd } from "../../utils/StringUtils";
+import { escapeHTMLBlock, mergeListItems, replaceWithSoftLineWraps, splitFromEnd } from "../../utils/StringUtils";
 
 /**
  * The MarkdownPreprocessor class is designed to process and transform markdown-like text.
@@ -51,6 +51,13 @@ export class MarkdownPreprocessor {
      */
     replaceWithSoftLineWraps() {
         this.pipeline.push(value => replaceWithSoftLineWraps(value));
+
+        return this;
+    }
+
+    escapeHTMLBlock() {
+        this.pipeline.push(value => escapeHTMLBlock(value));
+        // console.log(escapeHTMLBlock(this.value));
 
         return this;
     }

@@ -56,7 +56,8 @@ export class Markdown {
         const processMarkdown = (src) => {
             return new MarkdownPreprocessor(src)
                 .replaceWithSoftLineWraps()
-                .splitFromEnd(/\n\n/g)
+                .escapeHTMLBlock()
+                .splitFromEnd("\n\n")
                 .mergeListItems()
                 .submit();
         }

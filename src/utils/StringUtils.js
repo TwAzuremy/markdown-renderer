@@ -1,4 +1,46 @@
-import { rules } from "../processor/Rules";
+import { createHTMLTagsRegex, rules } from "../processor/Rules";
+
+/**
+ * Returns a set of HTML block-level tags that are commonly used to structure content 
+ * in a webpage. Block-level elements typically occupy the entire width of their 
+ * container and can contain other block or inline elements.
+ *
+ * @returns {Set<string>} A set containing HTML block-level tags.
+ */
+export function getHTMLBlockTags() {
+    return new Set([
+        // Document structure
+        "section", "article", "aside", "header", "footer", "nav", "main",
+        // Headings
+        "h1", "h2", "h3", "h4", "h5", "h6",
+        // Content grouping
+        "div", "p", "hr", "pre", "blockquote", "address",
+        // Lists & description
+        "ul", "ol", "dl",
+        // Table
+        "table",
+        // Form-related
+        "form", "fieldset",
+        // Media & images
+        "figure",
+        // Other
+        "details", "dialog"
+    ]);
+}
+
+/**
+ * Returns a set of HTML void tags, which are self-closing elements that do not have
+ * a closing tag. These elements are typically used to embed resources or add
+ * content to a page without requiring separate start and end tags.
+ *
+ * @returns {Set<string>} A set containing HTML void tags.
+ */
+export function getHTMLVoidTags() {
+    return new Set([
+        "area", "base", "br", "col", "embed", "hr", "img", "input",
+        "link", "meta", "param", "source", "track", "wbr"
+    ]);
+}
 
 /**
  * Remove trailing "c"s. Equivalent to str.replace(/c*$/, "").
@@ -150,6 +192,177 @@ export function replaceWithSoftLineWraps(text) {
 }
 
 /**
+ * Escapes HTML block tags in the provided source string while preserving the content of code blocks.
+ * The function detects block-level HTML tags and replaces them with their escaped equivalents, ensuring 
+ * the integrity of any code blocks by excluding them from the transformation.
+ * 
+ * @param {string} src - The source string containing HTML content.
+ * @returns {string} The source string with HTML block tags escaped.
+ */
+export function escapeHTMLBlock(src) {
+    const regex = createHTMLTagsRegex("block", false);
+    const blockTags = getHTMLBlockTags();
+    const codeRanges = getCodeRanges(src);
+    const matches = [];
+    let match;
+
+    while ((match = regex.exec(src)) !== null) {
+        const fullTag = match[0];
+        const start = match.index;
+        const end = start + fullTag.length;
+        const before = src.slice(start - 2, start);
+        const after = src.slice(end, end + 2);
+        let meetsCondition = false;
+
+        // Exclude tags within code blocks
+        if (isInCodeRange(start, end, codeRanges)) continue;
+
+        // 判断条件
+        if (start === 0) {
+            // Check if there are two newlines after the tag at the beginning
+            meetsCondition = after !== "\n\n";
+        } else if (end === src.length) {
+            // Check if there are two newlines before the tag at the end
+            meetsCondition = before !== "\n\n";
+        } else {
+            // General case: check if there"s a newline before or after the tag
+            meetsCondition = before !== "\n\n" || after !== "\n\n";
+        }
+
+        if (meetsCondition) {
+            matches.push({ start, end, fullTag });
+        }
+    }
+
+    // Replace from the end to avoid modifying indices
+    let result = src;
+    for (let i = matches.length - 1; i >= 0; i--) {
+        const { start, end, fullTag } = matches[i];
+        const processed = processTag(fullTag, blockTags);
+        result = result.slice(0, start) + processed + result.slice(end);
+    }
+
+    return result;
+}
+
+/**
+ * Retrieves all the start and end positions of code blocks and inline code in the source string.
+ * The function uses regular expressions to identify the locations of code blocks and inline code.
+ * 
+ * @param {string} src - The source string containing HTML and code content.
+ * @returns {Array} An array of objects with `start` and `end` properties indicating the code block locations.
+ */
+function getCodeRanges(src) {
+    // Matches both code blocks and inline code
+    const codeRegex = /(```[\s\S]*?```|`[^`]*?`)/g;
+    const ranges = [];
+    let match;
+
+    while ((match = codeRegex.exec(src)) !== null) {
+        ranges.push({
+            start: match.index,
+            end: match.index + match[0].length
+        });
+    }
+    return ranges;
+}
+
+/**
+ * Checks whether the specified range (start to end) lies within any of the given code ranges.
+ * This function ensures that HTML tags within code blocks are not transformed.
+ * 
+ * @param {number} start - The start index of the range.
+ * @param {number} end - The end index of the range.
+ * @param {Array} ranges - An array of code block ranges.
+ * @returns {boolean} True if the range is inside any code block, otherwise false.
+ */
+function isInCodeRange(start, end, ranges) {
+    return ranges.some(range =>
+        (start >= range.start && start <= range.end) ||
+        (end >= range.start && end <= range.end)
+    );
+}
+
+/**
+ * Processes an HTML tag by escaping block-level HTML tags within its content.
+ * It checks whether the tag is part of the block tags and escapes its contents accordingly.
+ * 
+ * @param {string} fullTag - The HTML tag to process.
+ * @param {Set} blockTags - A set of block-level HTML tags.
+ * @returns {string} The processed HTML tag with its content properly escaped.
+ */
+function processTag(fullTag, blockTags) {
+    // Extract the tag name
+    const tagNameMatch = fullTag.match(/<\/?(\w+)/);
+    if (!tagNameMatch || !blockTags.has(tagNameMatch[1].toLowerCase())) {
+        return fullTag;
+    }
+
+    // Process nested tags inside the tag
+    const innerContent = extractContent(fullTag);
+    const escapedInner = escapeAllBlockTags(innerContent);
+    const newTag = replaceContent(fullTag, escapedInner);
+
+    // Escape the outer tag itself
+    return newTag.replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+
+/**
+ * Extracts the content between the start and end tags of an HTML tag.
+ * 
+ * @param {string} fullTag - The full HTML tag to extract content from.
+ * @returns {string} The content inside the HTML tag.
+ */
+function extractContent(fullTag) {
+    const startTagEnd = fullTag.indexOf(">") + 1;
+    const endTagStart = fullTag.lastIndexOf("<");
+    return fullTag.slice(startTagEnd, endTagStart);
+}
+
+/**
+ * Replaces the content of an HTML tag with the new content provided.
+ * 
+ * @param {string} fullTag - The full HTML tag.
+ * @param {string} newContent - The new content to replace the existing content.
+ * @returns {string} The HTML tag with the replaced content.
+ */
+function replaceContent(fullTag, newContent) {
+    const startTagEnd = fullTag.indexOf(">") + 1;
+    const endTagStart = fullTag.lastIndexOf("<");
+    return fullTag.slice(0, startTagEnd) + newContent + fullTag.slice(endTagStart);
+}
+
+/**
+ * Escapes all block-level HTML tags in the provided content.
+ * The function ensures that any block tags in the content are properly escaped.
+ * 
+ * @param {string} content - The content containing HTML block tags.
+ * @returns {string} The content with block tags escaped.
+ */
+function escapeAllBlockTags(content) {
+    const regex = createHTMLTagsRegex("block", false);
+    let result = content;
+    const matches = [];
+    let match;
+
+    while ((match = regex.exec(content)) !== null) {
+        matches.push({
+            index: match.index,
+            fullTag: match[0]
+        });
+    }
+
+    // Escape block tags from the end to avoid modifying indices
+    for (let i = matches.length - 1; i >= 0; i--) {
+        const { index, fullTag } = matches[i];
+        const escaped = fullTag.replace(/</g, "&lt;").replace(/>/g, "&gt;");
+        result = result.slice(0, index) + escaped + result.slice(index + fullTag.length);
+    }
+
+    return result;
+}
+
+/**
  * Merges consecutive list items of the same type (ordered or unordered) into a single block,
  * while preserving other non-list items as individual entries.
  *
@@ -250,7 +463,7 @@ export function splitFromEnd(str, separator) {
     const separatorLength = separator.length;
 
     // If the separator is an empty string, return an array of individual characters.
-    if (separator === '') {
+    if (separator === "") {
         return [...str];
     }
 
@@ -273,48 +486,6 @@ export function splitFromEnd(str, separator) {
 
     // Reverse the result to match the order from the end to the start
     return result.reverse();
-}
-
-/**
- * Returns a set of HTML block-level tags that are commonly used to structure content 
- * in a webpage. Block-level elements typically occupy the entire width of their 
- * container and can contain other block or inline elements.
- *
- * @returns {Set<string>} A set containing HTML block-level tags.
- */
-export function getHTMLBlockTags() {
-    return new Set([
-        // Document structure
-        "section", "article", "aside", "header", "footer", "nav", "main",
-        // Headings
-        "h1", "h2", "h3", "h4", "h5", "h6",
-        // Content grouping
-        "div", "p", "hr", "pre", "blockquote", "address",
-        // Lists & description
-        "ul", "ol", "dl",
-        // Table
-        "table",
-        // Form-related
-        "form", "fieldset",
-        // Media & images
-        "figure",
-        // Other
-        "details", "dialog"
-    ]);
-}
-
-/**
- * Returns a set of HTML void tags, which are self-closing elements that do not have
- * a closing tag. These elements are typically used to embed resources or add
- * content to a page without requiring separate start and end tags.
- *
- * @returns {Set<string>} A set containing HTML void tags.
- */
-export function getHTMLVoidTags() {
-    return new Set([
-        "area", "base", "br", "col", "embed", "hr", "img", "input",
-        "link", "meta", "param", "source", "track", "wbr"
-    ]);
 }
 
 /**
