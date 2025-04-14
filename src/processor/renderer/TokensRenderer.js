@@ -34,19 +34,14 @@ export const renderer = {
         return templates.blockquote(type, this.parser.parse(tokens));
     },
     html(tokens) {
-        console.log("html", tokens);
-
         if (tokens.single) {
             return templates.htmlSingle(tokens.type, tokens.block, tokens.raw);
         }
 
         const tags = tokens.raw.split(tokens.text);
+        const content = this.parser[tokens.block ? "parse" : "parseInline"](tokens.tokens);
 
-        if (tokens.block) {
-            return templates.htmlBlock(tags, this.parser.parse(tokens.tokens));
-        } else {
-            return templates.htmlInline(tags, this.parser.parseInline(tokens.tokens));
-        }
+        return templates.html(tokens.block, tags, content, tokens.tag);
     },
     hr({ type, raw }) {
         return templates.hr(type, raw);

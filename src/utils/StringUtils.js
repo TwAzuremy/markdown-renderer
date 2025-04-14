@@ -346,50 +346,67 @@ export function getHTMLVoidTags() {
     ]);
 }
 
+/**
+ * Escapes special characters in a string and handles backslashes appropriately.
+ * This function maps certain special characters (like "<" and ">") to their HTML entity equivalents
+ * and ensures that backslashes are handled in a way that respects their escape behavior.
+ * 
+ * The function handles two main operations:
+ * 1. It escapes characters that need to be replaced with their HTML entity equivalents (currently supports "<" and ">").
+ * 2. It ensures that backslashes are properly escaped, accounting for whether they are used as escape characters.
+ * 
+ * @param {string} str - The input string that needs to be escaped.
+ * @returns {string} - The escaped string with special characters replaced and backslashes handled appropriately.
+ * 
+ * @example
+ * escapeString("Hello <world>") // will return "Hello &lt;world&gt;".
+ * escapeString("foo\\bar") // will return "foo\\bar", while escapeString("foo\\\\bar") will return "foo\\\\bar".
+ */
 export function escapeString(str) {
+    // Map of characters to be escaped; extendable for additional characters.
     const escapeMap = {
         "<": "&lt;",
         ">": "&#62;"
-        // 添加其他需要转义的字符
     };
-    let result = '';
+    let result = "";
     let backslashCount = 0;
+
+    /**
+     * Helper function to process consecutive backslashes in the string.
+     * It ensures even backslashes are preserved, and odd backslashes are handled as escape characters.
+     * 
+     * @param {number} count - The number of consecutive backslashes encountered.
+     * @returns {string} - A string of backslashes that respects the escape rules.
+     */
+    const processBackslashes = (count) => {
+        // Calculate the even part (e.g., 5 → 4, 3 → 2).
+        const even = count - (count % 2);
+
+        // Keep even number of backslashes and add an additional escape backslash if odd.
+        return "\\".repeat(even) +
+            // If odd, add one more escape backslash.
+            (count % 2 ? "\\" : "");
+    };
 
     for (let i = 0; i < str.length; i++) {
         const c = str[i];
-        if (c === '\\') {
+
+        // If the character is a backslash, count it but do not process yet.
+        if (c === "\\") {
             backslashCount++;
             continue;
         }
 
-        // 处理前面的反斜杠
-        let backslashPrefix = '';
-        if (backslashCount > 0) {
-            const evenCount = Math.floor(backslashCount / 2) * 2;
-            backslashPrefix = '\\'.repeat(evenCount);
-            if (backslashCount % 2 !== 0) {
-                backslashPrefix += '\\';
-            }
-        }
-        result += backslashPrefix;
+        // Process any accumulated backslashes before the current character.
+        result += processBackslashes(backslashCount);
 
-        // 处理当前字符
-        if (backslashCount % 2 === 0) {
-            result += escapeMap[c] || c;
-        } else {
-            result += c;
-        }
+        // If the number of backslashes is even, escape the current character.
+        // If the number is odd, retain the character as is.
+        result += backslashCount % 2 === 0 ? (escapeMap[c] || c) : c;
         backslashCount = 0;
     }
 
-    // 处理末尾剩余的反斜杠
-    if (backslashCount > 0) {
-        const evenCount = Math.floor(backslashCount / 2) * 2;
-        result += '\\'.repeat(evenCount);
-        if (backslashCount % 2 !== 0) {
-            result += '\\';
-        }
-    }
-
+    // Process any remaining backslashes at the end of the string. (e.g "foo\\\\\")
+    result += processBackslashes(backslashCount);
     return result;
 }

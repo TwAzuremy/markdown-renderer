@@ -64,13 +64,27 @@ function simpleClosedSymbol(type, text, symbol, tag) {
     return `<span class="${MarkdownClassname.inline}" data-type="${type}"><span class="${MarkdownClassname.symbol}" data-position="prefix">${symbol}</span>${inlineText}<span class="${MarkdownClassname.symbol}" data-position="suffix">${symbol}</span></span>`
 }
 
-function addClassToHtmlTag(htmlString, className) {
-    const tagNameMatch = htmlString.match(/^<\s*([a-zA-Z][^\s/>]*)/);
-    if (!tagNameMatch) return htmlString;
-    const tagName = tagNameMatch[1];
+/**
+ * Adds a class (or multiple classes) to the specified HTML tag in a string.
+ * This function assumes the input is a valid HTML string and attempts to add the 
+ * specified class(es) to the first occurrence of the specified tag's class list.
+ * 
+ * If the HTML string doesn't contain the specified tag or the operation fails, 
+ * the original HTML string is returned unmodified.
+ * 
+ * @param {string} htmlString - The input HTML string containing the tag to which classes should be added.
+ * @param {string} className - The class name (or space-separated list of class names) to be added to the element.
+ * @param {string} tagName - The name of the HTML tag to which classes should be added.
+ * @returns {string} - The modified HTML string with the class(es) added to the specified tag, or the original string if no modification is made.
+ */
+function addClassToHtmlTag(htmlString, className, tagName) {
+    // Return original string if no tag is found.
+    if (!tagName) return htmlString;
 
     const tempDiv = document.createElement('div');
+
     try {
+        // Add closing tag for parsing.
         tempDiv.innerHTML = htmlString + `</${tagName}>`;
     } catch (e) {
         return htmlString;
@@ -79,12 +93,14 @@ function addClassToHtmlTag(htmlString, className) {
     const element = tempDiv.firstElementChild;
     if (!element) return htmlString;
 
-    // 修复点：拆分类名为数组并逐个添加
-    const classes = className.split(/\s+/).filter(c => c); // 过滤空字符串
+    // Split by spaces and filter out empty strings.
+    const classes = className.split(/\s+/).filter(c => c);
+    // Add classes to the element.
     element.classList.add(...classes);
 
     const newHtml = element.outerHTML;
     const startTagEndIndex = newHtml.indexOf('>');
+
     return startTagEndIndex === -1 ? htmlString : newHtml.substring(0, startTagEndIndex + 1);
 }
 
@@ -102,21 +118,19 @@ export const templates = {
 
         return block ? `<p class="${MarkdownClassname.block}" data-type="${type}"><span class="${MarkdownClassname.symbol}" data-type="prefix">${escapeContent}</span>${content}</p>` : `<span class="${MarkdownClassname.inline}" data-type="${type}"><span class="${MarkdownClassname.symbol}" data-type="prefix">${escapeContent}</span>${content}</span>`;
     },
-    htmlBlock(tags, content) {
+    html(block, tags, content, tagName) {
         const prefixTag = escapeString(tags[0]);
         const suffixTag = escapeString(tags[1]);
 
-        tags[0] = addClassToHtmlTag(tags[0], `${MarkdownClassname.custom}`);
+        tags[0] = addClassToHtmlTag(tags[0], `${MarkdownClassname.custom}`, tagName);
 
-        return `<div class="${MarkdownClassname.block}" data-type="custom"><span class="${MarkdownClassname.symbol}" data-type="prefix">${prefixTag}</span>${tags[0]}${content}${tags[1]}<span class="${MarkdownClassname.symbol}" data-type="suffix">${suffixTag}</span></div>`;
-    },
-    htmlInline(tags, content) {
-        const prefixTag = escapeString(tags[0]);
-        const suffixTag = escapeString(tags[1]);
+        const childElement = `<span class="${MarkdownClassname.symbol}" data-type="prefix">${prefixTag}</span>${tags[0]}${content}${tags[1]}<span class="${MarkdownClassname.symbol}" data-type="suffix">${suffixTag}</span>`;
 
-        tags[0] = addClassToHtmlTag(tags[0], `${MarkdownClassname.custom}`);
-
-        return `<span class="${MarkdownClassname.inline}" data-type="custom"><span class="${MarkdownClassname.symbol}" data-type="prefix">${prefixTag}</span>${tags[0]}${content}${tags[1]}<span class="${MarkdownClassname.symbol}" data-type="suffix">${suffixTag}</span></span>`;
+        if (block) {
+            return `<div class="${MarkdownClassname.block}" data-type="custom">${childElement}</div>`;
+        } else {
+            return `<span class="${MarkdownClassname.inline}" data-type="custom">${childElement}</span>`;
+        }
     },
     hr(type, raw) {
         return `<hr class="${MarkdownClassname.block}" data-type="${type}" data-raw="${raw}">`;
