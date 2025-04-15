@@ -88,7 +88,7 @@ export const toCamelCase = str =>
  */
 const getLevel = (line) => {
     const trimmed = line.replace(rules.renderer.other.trimStartPattern, "");
-    const match = trimmed.match(/>/g);
+    const match = trimmed.match(/> ?(?=(?:> ?)*$)/g);
 
     return match ? match.length : 0;
 };
