@@ -67,7 +67,8 @@ export const rules = {
         },
         html: {
             blockPattern: createHTMLTagsRegex("block"),
-            inlinePattern: createHTMLTagsRegex("inline")
+            inlinePattern: createHTMLTagsRegex("inline"),
+            pattern: /^(<([a-z]+)\b[^>]*>)(.*?)<\/\2>$/i
         },
         blockquote: {
             blockQuotePattern: /^(>\s*)+/,

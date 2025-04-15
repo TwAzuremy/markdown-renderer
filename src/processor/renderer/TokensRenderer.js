@@ -1,4 +1,5 @@
 import { escapeString, toCamelCase } from "../../utils/StringUtils";
+import { rules } from "../Rules";
 import { templates } from "./Templates";
 
 /**
@@ -25,6 +26,35 @@ const concatTexts = (tokens, depth = 0, maxDepth = 1000) => {
             acc + (tokens ? concatTexts(tokens, depth + 1) : text || ""), "");
 };
 
+/**
+ * Extracts HTML tags from a given HTML string.
+ * 
+ * This function uses a regular expression to capture the start tag, 
+ * content inside the tag, and the end tag from the provided HTML string.
+ * 
+ * @param {string} htmlStr - The HTML string to parse.
+ * @returns {Object|null} - An object containing the start tag, content, 
+ *                          and end tag if a match is found; 
+ *                          otherwise, null if no match is found.
+ */
+function getHTMLTags(htmlStr) {
+    // Regex pattern to match HTML tags (start, content, and end)
+    const regex = new RegExp(rules.renderer.html.pattern);
+    const match = htmlStr.match(regex);
+
+    if (match) {
+        return {
+            // Start tag (including attributes)
+            startTag: match[1],
+            content: match[3],
+            endTag: `</${match[2]}>`
+        };
+    } else {
+        // If no match is found, return null or handle the error as needed
+        return null;
+    }
+}
+
 export const renderer = {
     // Block-level renderer methods
     code({ type, text, language }) {
@@ -38,10 +68,10 @@ export const renderer = {
             return templates.htmlSingle(tokens.type, tokens.block, tokens.raw);
         }
 
-        const tags = tokens.raw.split(tokens.text);
+        const { startTag, endTag } = getHTMLTags(tokens.raw);
         const content = this.parser[tokens.block ? "parse" : "parseInline"](tokens.tokens);
 
-        return templates.html(tokens.block, tags, content, tokens.tag);
+        return templates.html(tokens.block, [startTag, endTag], content, tokens.tag);
     },
     hr({ type, raw }) {
         return templates.hr(type, raw);
