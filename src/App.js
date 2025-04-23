@@ -1,40 +1,56 @@
 import './App.css';
+
 import MarkdownEditor from './components/MarkdownEditor';
 
-const markdown = `# Hello World
+const markdown = `# Markdown Example
 
-This is **Bold Text**
-This is *Italic Text*
+---
 
+**Bold Text**
+*Italic Text*
+***Bold and Italic***
 
-> Hello
+~~Delete Line~~
+<u>Under Line</u>
+
+[LINK](https://markdown.com.cn/basic-syntax/ "Markdown Tutorials")
+
+![IMAGE](https://t.alcy.cc/pc "From ALCY")
+
+- Unordered Listings ( Element 1 )
+
+    - Sublists ( Element 1 )
+
+    - Sublists ( Element 2 )
+
+- Unordered Listings ( Element 2 )
+
+1. Ordered Lists
+
+2. Ordered Lists
+
+- [x] Task 1
+
+- [ ] Task 2
+
+> Blockquote
 >
-> World
-> > This is a nested blockquote
+> > Sub Blockquote
 
-- Line 1
-    Sub Line
+\`Inline Code\`
 
-- Line 2
+\`\`\`java
+public class Test {
+    public static void main(String[] args) {
+        System.out.println("Hello World");
+    }
+}
+\`\`\`
 
-1. Line 1
-    Sub Line
-
-1. Line 2
-
-Inline Text
-\`Code span\`
-
-\`\`\`xml
-<!-- 装配 Bean -->
-<bean name="xxxMapperImpl" class="[package].dao.impl.xxxMapperImpl"/>
-<bean name="xxxAspect" class="[package].aspect.xxxAspect"/>
-
-<!-- 配置 aop -->
-<aop:config>
-    Hello World
-</aop:config>
-\`\`\``;
+| Id   |  Username  | Description |
+| :--- | :--------: | ----------: |
+| 01   |   Azuremy  |  developers |
+| 02   | Baka Yufan |      mascot |`;
 
 function App() {
     return (

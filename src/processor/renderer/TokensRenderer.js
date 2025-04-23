@@ -146,8 +146,6 @@ export const renderer = {
         const symbol = raw.split(text)[0];
         const content = templates.text(escapeString(text));
 
-        console.log(content);
-
         return templates.codespan(type, content, symbol);
     },
     br({ type }) {
