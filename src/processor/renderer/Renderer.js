@@ -35,34 +35,40 @@ async function processList(list) {
 
 export class Markdown {
     /**
+     * Preprocessing steps: 
+     *    Replace with soft line breaks -> Split into paragraphs -> Fix broken Markdown lists.
+     * 
+     * This function takes a Markdown string as input and processes it through a series of transformations:
+     * 1. Replaces line breaks with soft line breaks for better formatting.
+     * 2. Splits the input text into an array of paragraphs, based on double newlines (`\n\n`).
+     * 3. Merges consecutive list items of the same type (ordered or unordered lists) that may have been disrupted by splitting.
+     * 
+     * After applying these transformations, the processed Markdown is returned as an array of strings.
+     * 
+     * @param {string} src - The Markdown text to be processed.
+     * @returns {string[]} - An array of processed Markdown paragraphs, with fixed list items and soft line breaks.
+     */
+    static process(src) {
+        return new MarkdownPreprocessor(src)
+            .replaceWithSoftLineWraps()
+            .escapeHTMLBlock()
+            .splitFromEnd("\n\n")
+            .mergeListItems()
+            .submit();
+    }
+
+    /**
      * @param {string} src 
      * @returns {Promise<string[]>}
      */
     static async parse(src) {
-        /**
-         * Preprocessing steps: 
-         *    Replace with soft line breaks -> Split into paragraphs -> Fix broken Markdown lists.
-         * 
-         * This function takes a Markdown string as input and processes it through a series of transformations:
-         * 1. Replaces line breaks with soft line breaks for better formatting.
-         * 2. Splits the input text into an array of paragraphs, based on double newlines (`\n\n`).
-         * 3. Merges consecutive list items of the same type (ordered or unordered lists) that may have been disrupted by splitting.
-         * 
-         * After applying these transformations, the processed Markdown is returned as an array of strings.
-         * 
-         * @param {string} src - The Markdown text to be processed.
-         * @returns {string[]} - An array of processed Markdown paragraphs, with fixed list items and soft line breaks.
-         */
-        const processMarkdown = (src) => {
-            return new MarkdownPreprocessor(src)
-                .replaceWithSoftLineWraps()
-                .escapeHTMLBlock()
-                .splitFromEnd("\n\n")
-                .mergeListItems()
-                .submit();
+        if (Array.isArray(src)) {
+            return await processList(src);
         }
 
+        const processMarkdown = this.process(src);
+
         // Render each paragraph asynchronously.
-        return await processList(processMarkdown(src));
+        return await processList(processMarkdown);
     }
 }
